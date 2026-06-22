@@ -17,27 +17,29 @@ logger = logging.getLogger(__name__)
 
 def find_excel_files(directory: str) -> list[str]:
     """
-    查找指定目录下所有.csv和.xlsx文件，并返回它们的绝对路径
+    Find all .csv and .xlsx files under the specified directory and return their
+    absolute paths.
 
-    参数:
-        directory: 要搜索的目录路径
+    Args:
+        directory: Directory path to search.
 
-    返回:
-        包含所有.csv和.xlsx文件绝对路径的列表，如果目录不存在则返回空列表
+    Returns:
+        A list of absolute paths for all .csv and .xlsx files, or an empty list if
+        the directory does not exist.
     """
-    # 检查目录是否存在
+    # Check whether the directory exists
     if not os.path.isdir(directory):
         return []
 
-    # 存储结果的列表
+    # Store the result list
     file_paths = []
 
-    # 遍历目录及其子目录
+    # Traverse the directory and its subdirectories
     for root, dirs, files in os.walk(directory):
         for file in files:
-            # 检查文件扩展名
+            # Check the file extension
             if file.lower().endswith((".csv", ".xlsx")):
-                # 获取文件的绝对路径并添加到列表
+                # Get the absolute file path and add it to the list
                 absolute_path = os.path.abspath(os.path.join(root, file))
                 file_paths.append(absolute_path)
 
@@ -69,7 +71,7 @@ class Excel2TableAgent:
             "1. Field name adaptive processing: If the Excel header is "
             "already in English (snake_case/camelCase), retain it directly "
             "without translation; if it is Chinese, convert it to standard "
-            "English snake_case (e.g., 产品ID→product_id); "
+            "English snake_case (e.g., product ID -> product_id); "
             "2. Field order strict alignment: The field order in the CREATE "
             "TABLE SQL must be exactly the same as the header order in the "
             "Excel table (to support subsequent data insertion by field order); "
@@ -112,7 +114,7 @@ class Excel2TableAgent:
     )
 
     max_retry_count: int = 1
-    language: str = "zh"
+    language: str = "en"
 
     def __init__(self, **kwargs):
         """Create a new DataScientistAgent instance."""
@@ -132,10 +134,10 @@ class Excel2TableAgent:
             headers, table_data = read_excel_headers_and_data(excel_file)
             mdstr = data2md(headers, table_data)
             all_file_data.append((filename_with_ext, mdstr))
-        message_parts = ["Excel文件中的部分数据如下："]
+        message_parts = ["Sample data from the Excel files:"]
         for i, (filename, mdstr) in enumerate(all_file_data, 1):
-            message_parts.append(f"\n文件 {i}: {filename}")
-            message_parts.append(f"数据内容：\n{mdstr}")
+            message_parts.append(f"\nFile {i}: {filename}")
+            message_parts.append(f"Data content:\n{mdstr}")
         prompt = "\n".join(message_parts)
         result = await super().thinking(
             messages, sender, prompt, stream_callback=stream_callback
@@ -200,7 +202,7 @@ class Excel2TableAgent:
                     "No table information found in the execution result.",
                 )
 
-            # 验证每个表的数据
+            # Verify data for each table
             for table_info in tables:
                 table_name = table_info.get("table_name")
                 if not table_name:
@@ -209,7 +211,7 @@ class Excel2TableAgent:
                         "Missing table name in execution result.",
                     )
 
-                # 检查表格是否存在
+                # Check whether the table exists
                 check_table_sql = f"""
                         SELECT COUNT(*) AS table_exists 
                         FROM sqlite_master 
@@ -225,7 +227,7 @@ class Excel2TableAgent:
                         f"Table {table_name} was not created successfully.",
                     )
 
-                # 检查数据是否插入成功
+                # Check whether data was inserted successfully
                 count_sql = f"SELECT COUNT(*) AS total_records FROM {table_name};"
                 columns, values = await self.database.query(
                     sql=count_sql,
@@ -244,12 +246,12 @@ class Excel2TableAgent:
                     f"{values[0][0]} rows of data."
                 )
 
-            # 所有表验证通过
+            # All tables passed verification
             logger.info(f"All {len(tables)} tables verification success!")
             return True, None
 
         except Exception as e:
-            logger.exception(f"DataScientist check exception！{str(e)}")
+            logger.exception(f"DataScientist check exception!{str(e)}")
             return (
                 False,
                 f"Verification error, please re-read the historical information to "
@@ -262,56 +264,65 @@ def read_excel_headers_and_data(
     file_path: str, read_rows: Optional[int] = 3
 ) -> Tuple[List[str], List[Dict[str, Any]]]:
     """
-    读取Excel文件，返回表头信息和结构化数据（支持指定读取行数）
+    Read an Excel file and return header information and structured data, with
+    support for specifying the number of rows to read.
 
-    参数:
-        file_path: Excel文件路径（.xlsx格式）
-        read_rows: 可选，指定读取的数据行数（不含表头）。
-                   - 默认为5：仅读取前5行数据
-                   - 设为None或0：读取全部数据
-                   - 设为正整数N：读取前N行数据（若数据总行数不足N，则读取实际所有行）
+    Args:
+        file_path: Excel file path in .xlsx format.
+        read_rows: Optional number of data rows to read, excluding the header.
+            Defaults to 3; use None or 0 to read all rows.
 
-    返回:
-        Tuple[表头列表, 数据列表]
-        - 表头列表: 从Excel第一行读取的列名
-        - 数据列表: 每个元素是一个字典，键为表头，值为对应单元格数据（空单元格转为None）
+    Returns:
+        A tuple of headers and data rows. Headers are read from the first row, and
+        each data row is a dictionary keyed by header with empty cells converted to
+        None.
     """
-    # 1. 基础文件校验
+    # 1. Basic file validation
     if not Path(file_path).exists():
-        raise FileNotFoundError(f"文件不存在: {file_path}")
+        raise FileNotFoundError(f"File does not exist: {file_path}")
     if Path(file_path).suffix.lower() != ".xlsx":
-        raise ValueError(f"不支持的文件格式: {Path(file_path).suffix}，仅支持.xlsx")
+        raise ValueError(
+            f"Unsupported file format: {Path(file_path).suffix}; "
+            "only .xlsx is supported"
+        )
 
     try:
-        # 2. 读取Excel（先获取完整数据，后续按需截取）
+        # 2. Read Excel data first, then truncate as needed
         df = pd.read_excel(
             file_path,
-            sheet_name=0,  # 读取第一个工作表
+            sheet_name=0,  # Read the first worksheet
             engine="openpyxl",
-            keep_default_na=False,  # 空单元格先转为空字符串，后续统一处理为None
+            # Convert empty cells to empty strings first, then normalize later.
+            keep_default_na=False,
         )
     except Exception as e:
-        raise RuntimeError(f"读取Excel失败: {str(e)}")
+        raise RuntimeError(f"Failed to read Excel: {str(e)}")
 
-    # 3. 表头提取与校验
+    # 3. Header extraction and validation
     headers = list(df.columns)
     if not headers:
-        raise ValueError("Excel文件没有表头信息（第一行为空）")
+        raise ValueError(
+            "The Excel file has no header information (the first row is empty)"
+        )
 
-    # 4. 处理“读取行数”逻辑：截取指定行数的数据（不含表头）
-    total_data_rows = len(df)  # 数据总行数（不含表头）
-    # 若指定读取全部（None/0），则取全部数据；否则取“指定行数”与“实际总行数”的较小值
+    # 4. Handle read_rows by selecting the target number of data rows
+    total_data_rows = len(df)  # Total data rows excluding the header
+    # If all rows are requested (None/0), use all rows; otherwise use the
+    # smaller of requested and available rows.
     if read_rows in (None, 0):
         target_rows = total_data_rows
     elif isinstance(read_rows, int) and read_rows > 0:
         target_rows = min(read_rows, total_data_rows)
     else:
-        raise ValueError(f"参数read_rows无效：{read_rows}，仅支持正整数、None或0")
+        raise ValueError(
+            f"Invalid read_rows parameter: {read_rows}; only positive integers, "
+            "None, or 0 are supported"
+        )
 
-    # 截取目标行数的数据（避免读取无关行，提升效率）
+    # Select the target rows to avoid reading irrelevant rows and improve efficiency
     df_target = df.head(target_rows)
 
-    # 5. 数据结构化：转为字典列表，空字符串转为None
+    # 5. Structure data as a list of dictionaries and convert empty strings to None
     data = []
     for _, row in df_target.iterrows():
         row_data = {

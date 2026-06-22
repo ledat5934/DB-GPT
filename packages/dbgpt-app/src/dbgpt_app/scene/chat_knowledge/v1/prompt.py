@@ -16,21 +16,6 @@ The assistant gives helpful, detailed, professional and polite answers to the us
 questions. """
 
 
-_DEFAULT_TEMPLATE_ZH = """ 基于以下给出的已知信息, 准守规范约束，专业、\
-简要回答用户的问题.
-规范约束:
-     1.如果已知信息包含的图片、链接、表格、代码块等特殊markdown标签格式的信息，\
-     确保在答案中包含原文这些图片、链接、表格和代码标签，不要丢弃不要修改，\
-     如:图片格式：![image.png](xxx), 链接格式:[xxx](xxx), \
-     表格格式:|xxx|xxx|xxx|, 代码格式:```xxx```.
-     2.如果无法从提供的内容中获取答案, 请说: "知识库中提供的内容不足以回答此问题" \
-     禁止胡乱编造.
-     3.回答的时候最好按照1.2.3.点进行总结, 并以markdown格式显示.
-            已知内容: 
-            {context}
-            问题:
-            {question},请使用和用户相同的语言进行回答.
-"""
 _DEFAULT_TEMPLATE_EN = """ Based on the known information below, provide users with \
 professional and concise answers to their questions.
 constraints:
@@ -49,6 +34,8 @@ constraints:
             question:
             {question},when answering, use the same language as the "user".
 """
+
+_DEFAULT_TEMPLATE_ZH = _DEFAULT_TEMPLATE_EN
 
 _DEFAULT_TEMPLATE = (
     _DEFAULT_TEMPLATE_EN if CFG.LANGUAGE == "en" else _DEFAULT_TEMPLATE_ZH

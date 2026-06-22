@@ -37,20 +37,7 @@ user question:
 Please answer in the same language as the user's question.
 """
 
-_DEFAULT_PROMPT_ZH = """你是一个有用的AI助手。
-
-请你仔细阅读下面的 Markdown 表格格式的数据，这是一份根据用户问题查询到的数据库的数据，\
-你需要根据数据仔细分析和总结，给出一份总结报告，使用 markdown 格式输出。
-
-<data-report>
-{data_report}
-</data-report>
-
-用户的问题:
-{user_input}
-
-请用用户提问的语言回答。
-"""
+_DEFAULT_PROMPT_ZH = _DEFAULT_PROMPT_EN
 
 _DEFAULT_USER_PROMPT = """\
 {user_input}

@@ -16,14 +16,6 @@ assistant, who very familiar with database related knowledge.
     user's questions. """
 
 
-_DEFAULT_TEMPLATE_ZH = """ 基于以下已知的信息, 专业、简要的回答用户的问题,
-如果无法从提供的内容中获取答案, 请说: "知识库中提供的内容不足以回答此问题" \
-禁止胡乱编造。 
-            已知内容: 
-            {context}
-            问题:
-            {question}
-"""
 _DEFAULT_TEMPLATE_EN = """ Based on the known information below, provide users with \
 professional and concise answers to their questions. If the answer cannot be obtained \
 from the provided content, please say: "The information provided in the knowledge base \
@@ -34,6 +26,8 @@ randomly.
             question:
             {question}
 """
+
+_DEFAULT_TEMPLATE_ZH = _DEFAULT_TEMPLATE_EN
 
 _DEFAULT_TEMPLATE = (
     _DEFAULT_TEMPLATE_EN if CFG.LANGUAGE == "en" else _DEFAULT_TEMPLATE_ZH

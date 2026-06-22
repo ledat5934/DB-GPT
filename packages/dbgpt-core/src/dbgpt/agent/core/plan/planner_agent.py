@@ -118,26 +118,42 @@ assistants:[
         ),
     )
     _goal_zh: str = (
-        "理解下面每个智能体(agent)和他们的能力，使用给出的资源，通过协调智能体来解决"
-        "用户问题。 请发挥你LLM的知识和理解能力，理解用户问题的意图和目标，生成一个可以"
-        "在没有用户帮助下，由智能体协作完成目标的任务计划。"
+        "Understand each agent and its capabilities below, use the provided "
+        "resources, and coordinate agents to solve the user's problem. Use your "
+        "LLM knowledge and understanding to infer the user's intent and goal, "
+        "then generate a task plan that agents can complete without further user help."
     )
-    _expand_prompt_zh: str = "可用智能体(agent):\n {{ agents }}"
+    _expand_prompt_zh: str = "Available agents:\n {{ agents }}"
 
     _constraints_zh: List[str] = [
-        "任务计划的每个步骤都应该是为了推进解决用户目标而存在，不要生成无意义的任务步骤，确保每个步骤内目标明确内容完整。",
-        "关注任务计划每个步骤的依赖关系和逻辑，被依赖步骤要考虑被依赖的数据，是否能基于当前目标得到，如果不能请在目标中提示要生成被依赖数据。",
-        "每个步骤都是一个独立可完成的目标，一定要确保逻辑和信息完整，不要出现类似:"
-        "'Analyze the retrieved issues data'这样目标不明确，不知具体要分析啥内容的步骤",
-        "请确保只使用上面提到的智能体，并且可以只使用其中需要的部分，严格根据描述能力和限制分配给合适的步骤，每个智能体都可以重复使用。",
-        "根据用户目标的实际需要使用提供的资源来协助生成计划步骤，不要使用不需要的资源。",
-        "每个步骤最好只使用一种资源完成一个子目标，如果当前目标可以分解为同类型的多个子任务，可以生成相互不依赖的并行任务。",
-        "数据资源可以被合适的智能体加载使用，不用考虑数据资源的加载链接问题",
-        "尽量合并有顺序依赖的连续相同步骤,如果用户目标无拆分必要，可以生成内容为用户目标的单步任务。",
-        "仔细检查计划，确保计划完整的包含了用户问题所涉及的所有信息，并且最终能完成目标"
-        "，确认每个步骤是否包含了需要用到的资源信息,如URL、资源名等. ",
+        "Every task-plan step must advance the user's goal. Do not generate "
+        "meaningless steps; ensure each step has a clear and complete objective.",
+        "Pay attention to dependencies and logic between steps. Dependent steps "
+        "must consider whether required data can be produced by earlier goals; "
+        "if not, explicitly state that the dependency data must be generated.",
+        "Each step should be an independently completable goal with complete "
+        "logic and information. Avoid vague goals such as 'Analyze the retrieved "
+        "issues data' when the specific analysis target is unclear.",
+        "Use only the agents mentioned above, and only the parts needed. Assign "
+        "steps strictly according to each agent's described capabilities and "
+        "limitations. Agents may be reused.",
+        "Use the provided resources only when they are needed to achieve the "
+        "user's goal; do not use unnecessary resources.",
+        "Prefer one resource type per step. If the current goal can be split "
+        "into multiple same-type subtasks, create independent parallel tasks.",
+        "Data resources can be loaded and used by suitable agents; do not worry "
+        "about data-loading links.",
+        "Merge consecutive same-type steps with sequential dependencies when "
+        "possible. If the user's goal does not need decomposition, create a "
+        "single-step task using the user's goal as the step content.",
+        "Carefully check the plan to ensure it covers all information in the "
+        "user's problem and can ultimately achieve the goal. Confirm each step "
+        "includes any required resource information, such as URLs or resource names.",
     ]
-    _desc_zh: str = "你是一个任务规划专家！可以协调智能体，分配资源完成复杂的任务目标。"
+    _desc_zh: str = (
+        "You are a task-planning expert who can coordinate agents and allocate "
+        "resources to achieve complex goals."
+    )
 
     def __init__(self, **kwargs):
         """Create a new PlannerAgent instance."""
