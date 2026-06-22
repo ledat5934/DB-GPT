@@ -93,6 +93,9 @@ const cleanFinalContent = (text: string): string => {
   return cleaned;
 };
 
+const DATA_SOURCE_REPORT_PROMPT =
+  'Analyze the uploaded data source immediately. Process every child file by its file type, profile the available tables/documents, generate a professional report with charts/visualizations and key insights, then keep this new session ready for follow-up questions about the uploaded data.';
+
 const _formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
@@ -597,6 +600,7 @@ const Playground: NextPage = () => {
   // Track step IDs that belong to a terminate action so we can suppress them
   const terminatedStepIdsRef = useRef<Set<string>>(new Set());
   const preloadedFilePathRef = useRef<string | null>(null);
+  const folderAutoStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Snapshot of the exact payload last sent to the agent, captured at send
   // time so "保存定时任务" can replay the real execution (file / database /
   // knowledge / skill / connectors) instead of a drifting UI state.
@@ -1422,6 +1426,7 @@ const Playground: NextPage = () => {
     overrideSkill?: Skill | null,
     overrideDb?: DataSource | null,
     overrideFiles?: File[],
+    forceNewSession = false,
   ) => {
     const effectiveFile = overrideFile !== undefined ? overrideFile : uploadedFile;
     const effectiveFiles = overrideFiles !== undefined ? overrideFiles : uploadedFiles;
@@ -1463,16 +1468,12 @@ const Playground: NextPage = () => {
         if (resData?.success && resData?.data) {
           currentUploadedFilePath = resData.data;
           setUploadedFilePath(currentUploadedFilePath);
-          finalQuery =
-            inputQuery ||
-            'Analyze the uploaded data source, process all child files by type, generate a professional interactive report, and keep the session ready for follow-up questions.';
+          finalQuery = inputQuery || DATA_SOURCE_REPORT_PROMPT;
         } else if (typeof resData === 'string' && resData.length > 0) {
           // Backend returned the file path directly as a string
           currentUploadedFilePath = resData;
           setUploadedFilePath(currentUploadedFilePath);
-          finalQuery =
-            inputQuery ||
-            'Analyze the uploaded data source, process all child files by type, generate a professional interactive report, and keep the session ready for follow-up questions.';
+          finalQuery = inputQuery || DATA_SOURCE_REPORT_PROMPT;
         } else {
           const errMsg = resData?.err_msg || resData?.message || 'Unknown error';
           message.error('File upload failed: ' + errMsg);
@@ -1503,8 +1504,8 @@ const Playground: NextPage = () => {
     }
 
     // Prepare conversation ID
-    const currentConvId = conversationId || generateUUID();
-    if (!conversationId) {
+    const currentConvId = forceNewSession ? generateUUID() : conversationId || generateUUID();
+    if (forceNewSession || !conversationId) {
       setConversationId(currentConvId);
     }
 
@@ -1516,8 +1517,18 @@ const Playground: NextPage = () => {
     const humanId = generateUUID();
 
     // Add user message and AI placeholder message
+    if (forceNewSession) {
+      setExecutionMap({});
+      setArtifacts([]);
+      setTaskPlan([]);
+      setStreamingSummary('');
+      setSummaryComplete(false);
+      setActiveMessageId(null);
+      setActiveViewMsgId(null);
+    }
+
     setMessages(prev => [
-      ...prev,
+      ...(forceNewSession ? [] : prev),
       {
         id: humanId,
         role: 'human',
@@ -2384,11 +2395,13 @@ const Playground: NextPage = () => {
     multiple: false,
     showUploadList: false,
     beforeUpload: (file: any) => {
-      setUploadedFile(file);
-      setUploadedFiles([file as File]);
-      parseLocalFilePreview(file as File);
-      message.success(`${file.name} attached successfully`);
-      return false; // Prevent auto upload, we just want to select it
+      const selectedFile = file as File;
+      setUploadedFile(selectedFile);
+      setUploadedFiles([selectedFile]);
+      setFilePreview(null);
+      message.success(`${file.name} attached successfully. Generating report...`);
+      handleStart(DATA_SOURCE_REPORT_PROMPT, selectedFile, selectedSkill, selectedDb, [selectedFile], true);
+      return false; // Prevent antd auto upload; handleStart uploads and starts the report session.
     },
   };
   const folderUploadProps: any = {
@@ -2402,7 +2415,14 @@ const Playground: NextPage = () => {
         setUploadedFile(files[0]);
         setUploadedFiles(files);
         setFilePreview(null);
-        message.success(`${files.length} files attached successfully`);
+        message.success(`${files.length} files attached successfully. Generating report...`);
+        if (folderAutoStartTimerRef.current) {
+          clearTimeout(folderAutoStartTimerRef.current);
+        }
+        folderAutoStartTimerRef.current = setTimeout(() => {
+          handleStart(DATA_SOURCE_REPORT_PROMPT, files[0], selectedSkill, selectedDb, files, true);
+          folderAutoStartTimerRef.current = null;
+        }, 100);
       }
       return false;
     },
