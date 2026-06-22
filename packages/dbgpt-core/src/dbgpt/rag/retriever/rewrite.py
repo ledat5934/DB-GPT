@@ -13,13 +13,7 @@ Based on the given context {context}, Generate {nums} search queries related to:
     "queries:"
 """
 
-REWRITE_PROMPT_TEMPLATE_ZH = """请根据上下文{context}, 将原问题优化生成{nums}个相关的
-搜索查询，这些查询应与原始查询相似并且是人们可能会提出的可回答的搜索问题。请勿使用任何示例中提
-到的内容，确保所有生成的查询均独立于示例，仅基于提供的原始查询。请按照以下逗号分隔的格式提供: 
-'queries:<queries>'
-"original_query:{original_query}\n"
-"queries:"
-"""
+REWRITE_PROMPT_TEMPLATE_ZH = REWRITE_PROMPT_TEMPLATE_EN
 
 
 @register_resource(

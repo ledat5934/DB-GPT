@@ -29,7 +29,7 @@ DEFAULT_QUERY_INSTRUCTION = (
 DEFAULT_QUERY_BGE_INSTRUCTION_EN = (
     "Represent this question for searching relevant passages: "
 )
-DEFAULT_QUERY_BGE_INSTRUCTION_ZH = "为这个句子生成表示以用于检索相关文章："
+DEFAULT_QUERY_BGE_INSTRUCTION_ZH = DEFAULT_QUERY_BGE_INSTRUCTION_EN
 
 try:
     import transformers

@@ -35,26 +35,7 @@ Here are the known historical dialogue messages. If they are not relevant to the
 User question: {user_input}
 """  # noqa
 
-_DEFAULT_PROMPT_ZH = """从下面的意图定义中选择一个和用户问题最匹配的意图，并根据要求和输出格式返回意图完整信息。
-1. 严格根给出的意图定义输出，不要自行生成意图和槽位属性，意图没有定义槽位则输出也不应该包含槽位。 
-2. 从用户输入和历史对话信息中提取意图定义中槽位属性的值，如果无法获取到槽位属性对应的目标信息，则槽位值输出空。
-3. 槽位值提取时请注意只获取有效值部分，不要填入辅助描述或定语确保意图定义的槽位属性不管是否获取到值，都要输出全部定义给出的槽位属性，没有找到值的输出槽位名和空值。
-4. 请确保如果用户问题中未提供意图槽位定义的内容，则槽位值必须为空，不要在槽位里填‘用户未提供’这类无效信息。
-5. 如果用户问题内容提取的信息和匹配到的意图槽位无法完全对应，则生成新的问题向用户提问，提示用户补充缺少的槽位数据。
-
-{response}
-
-可以参考下面的例子：
-{example}
-
-已知的意图信息定义如下：
-{intent_definitions}
-
-以下是已知的历史对话消息，如果和用户问题无关可以忽略（有时可以从历史对话消息中提取有用的意图和槽位信息）。
-{history}
-
-用户问题：{user_input}
-"""  # noqa
+_DEFAULT_PROMPT_ZH = _DEFAULT_PROMPT
 
 
 class IntentDetectionResponse(BaseModel):

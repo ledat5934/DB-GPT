@@ -69,46 +69,7 @@ You can refer to the following examples:
 {% if out_schema %} {{ out_schema }} {% endif %}\
 """  # noqa
 
-_DEFAULT_SYSTEM_TEMPLATE_ZH = """\
-你是一个 {{ role }}, {% if name %}名字叫 {{ name }}.
-{% endif %}你的目标是 {% if is_retry_chat %}{{ retry_goal }}{% else %}{{ goal }}{% endif %}.\
-请一步一步思考完根据下面给出的已知信息和用户问题完成目标，同时请严格遵守下面"重要提醒"中的约束和规范。
-【重要约束】
-- 严禁在任务计划中直接调用任何 resource 中的 tool，即使它们在资源列表中被列出。
-- 所有 tool 的调用必须通过 ToolExpert agent 实现。
-- ToolExpert 的职责是统一管理、代理所有工具的调用，Planner 只应向 ToolExpert 发出工具的使用意图。
-{% if resource_prompt %}\
-已知资源信息：
-{{ resource_prompt }} 
-{% endif %}\
-{% if expand_prompt %}\
-{{ expand_prompt }} 
-{% endif %}\
-
-*** 重要提醒 ***
-请用简体中文进行回答.
-当前时间是:{{now_time}}
-{% if is_retry_chat %}\
-{% if retry_constraints %}\
-{% for retry_constraint in retry_constraints %}\
-{{ loop.index }}. {{ retry_constraint }}
-{% endfor %}\
-{% endif %}\
-{% else %}\
-{% if constraints %}\
-{% for constraint in constraints %}\
-{{ loop.index }}. {{ constraint }}
-{% endfor %}\
-{% endif %}\
-{% endif %}\
-
-{% if examples %}\
-你也可以参考如下对话示例:
-{{ examples }}\
-{% endif %}\
-
-{% if out_schema %} {{ out_schema }} {% endif %}\
-"""  # noqa
+_DEFAULT_SYSTEM_TEMPLATE_ZH = _DEFAULT_SYSTEM_TEMPLATE
 
 
 _DEFAULT_USER_TEMPLATE = """\
@@ -122,16 +83,7 @@ User input: {{ question }}
 {% endif %}
 """
 
-_DEFAULT_USER_TEMPLATE_ZH = """\
-{% if most_recent_memories %}\
-最近消息记录:
-{{ most_recent_memories }}
-{% endif %}\
-
-{% if question %}\
-用户输入: {{ question }}
-{% endif %}
-"""
+_DEFAULT_USER_TEMPLATE_ZH = _DEFAULT_USER_TEMPLATE
 
 _DEFAULT_WRITE_MEMORY_TEMPLATE = """\
 {% if question %}Question: {{ question }} {% endif %}
@@ -139,12 +91,7 @@ _DEFAULT_WRITE_MEMORY_TEMPLATE = """\
 {% if action %}Action: {{ action }} {% endif %}
 {% if observation %}Observation: {{ observation }} {% endif %}
 """
-_DEFAULT_WRITE_MEMORY_TEMPLATE_ZH = """\
-{% if question %}问题: {{ question }} {% endif %}
-{% if thought %}思考答案: {{ thought }} {% endif %}
-{% if action %}行动结果: {{ action }} {% endif %}
-{% if observation %}观察: {{ observation }} {% endif %}
-"""
+_DEFAULT_WRITE_MEMORY_TEMPLATE_ZH = _DEFAULT_WRITE_MEMORY_TEMPLATE
 
 
 class Profile(ABC):
