@@ -41,6 +41,7 @@ import {
   FileOutlined,
   FilePptOutlined,
   FileTextOutlined,
+  FolderOpenOutlined,
   LeftOutlined,
   PaperClipOutlined,
   PieChartOutlined,
@@ -158,6 +159,7 @@ interface FileAttachment {
   name: string;
   size: number;
   type: string;
+  count?: number;
 }
 
 // Define message type for chat
@@ -523,6 +525,7 @@ const Playground: NextPage = () => {
   const [selectedDb, setSelectedDb] = useState<DataSource | null>(null);
   const [selectedKnowledge, setSelectedKnowledge] = useState<KnowledgeSpace | null>(null);
   const [uploadedFile, setUploadedFile] = useState<any | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   // Chat messages state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -1418,11 +1421,13 @@ const Playground: NextPage = () => {
     overrideFile?: File | null,
     overrideSkill?: Skill | null,
     overrideDb?: DataSource | null,
+    overrideFiles?: File[],
   ) => {
     const effectiveFile = overrideFile !== undefined ? overrideFile : uploadedFile;
+    const effectiveFiles = overrideFiles !== undefined ? overrideFiles : uploadedFiles;
     const effectiveSkill = overrideSkill !== undefined ? overrideSkill : selectedSkill;
     const effectiveDb = overrideDb !== undefined ? overrideDb : selectedDb;
-    if ((!inputQuery.trim() && !effectiveFile) || loading) return;
+    if ((!inputQuery.trim() && !effectiveFile && effectiveFiles.length === 0) || loading) return;
 
     let finalQuery = inputQuery;
     const appCode = 'chat_react_agent';
@@ -1436,12 +1441,20 @@ const Playground: NextPage = () => {
       setUploadedFilePath(currentUploadedFilePath);
       preloadedFilePathRef.current = null;
       finalQuery = inputQuery || 'Analyze the uploaded file.';
-    } else if (effectiveFile) {
+    } else if (effectiveFile || effectiveFiles.length > 0) {
       const formData = new FormData();
-      formData.append('file', effectiveFile);
+      const filesToUpload = effectiveFiles.length > 0 ? effectiveFiles : [effectiveFile as File];
+      filesToUpload.forEach(file => {
+        const relativePath = (file as any).webkitRelativePath || file.name;
+        formData.append(filesToUpload.length > 1 ? 'files' : 'file', file, relativePath);
+      });
+      const uploadUrl =
+        filesToUpload.length > 1
+          ? `${process.env.API_BASE_URL ?? ''}/api/v1/python/files/upload`
+          : `${process.env.API_BASE_URL ?? ''}/api/v1/python/file/upload`;
 
       try {
-        const uploadRes = await axios.post(`${process.env.API_BASE_URL ?? ''}/api/v1/python/file/upload`, formData, {
+        const uploadRes = await axios.post(uploadUrl, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
 
@@ -1450,12 +1463,16 @@ const Playground: NextPage = () => {
         if (resData?.success && resData?.data) {
           currentUploadedFilePath = resData.data;
           setUploadedFilePath(currentUploadedFilePath);
-          finalQuery = inputQuery || 'Analyze the uploaded Excel file.';
+          finalQuery =
+            inputQuery ||
+            'Analyze the uploaded data source, process all child files by type, generate a professional interactive report, and keep the session ready for follow-up questions.';
         } else if (typeof resData === 'string' && resData.length > 0) {
           // Backend returned the file path directly as a string
           currentUploadedFilePath = resData;
           setUploadedFilePath(currentUploadedFilePath);
-          finalQuery = inputQuery || 'Analyze the uploaded Excel file.';
+          finalQuery =
+            inputQuery ||
+            'Analyze the uploaded data source, process all child files by type, generate a professional interactive report, and keep the session ready for follow-up questions.';
         } else {
           const errMsg = resData?.err_msg || resData?.message || 'Unknown error';
           message.error('File upload failed: ' + errMsg);
@@ -1506,13 +1523,19 @@ const Playground: NextPage = () => {
         role: 'human',
         context: inputQuery,
         order: currentOrder,
-        attachedFile: effectiveFile
-          ? {
-              name: effectiveFile.name,
-              size: effectiveFile.size,
-              type: effectiveFile.type,
-            }
-          : undefined,
+        attachedFile:
+          effectiveFile || effectiveFiles.length > 0
+            ? {
+                name:
+                  effectiveFiles.length > 1 ? `${effectiveFiles.length} uploaded files` : (effectiveFile as File).name,
+                size:
+                  effectiveFiles.length > 1
+                    ? effectiveFiles.reduce((total, file) => total + file.size, 0)
+                    : (effectiveFile as File).size,
+                type: effectiveFiles.length > 1 ? 'folder' : (effectiveFile as File).type,
+                count: effectiveFiles.length > 1 ? effectiveFiles.length : undefined,
+              }
+            : undefined,
         attachedKnowledge: selectedKnowledge ?? undefined,
         attachedSkill: effectiveSkill ? { name: effectiveSkill.name, id: effectiveSkill.id } : undefined,
         attachedDb: effectiveDb ? { db_name: effectiveDb.db_name, db_type: effectiveDb.db_type } : undefined,
@@ -2362,9 +2385,26 @@ const Playground: NextPage = () => {
     showUploadList: false,
     beforeUpload: (file: any) => {
       setUploadedFile(file);
+      setUploadedFiles([file as File]);
       parseLocalFilePreview(file as File);
       message.success(`${file.name} attached successfully`);
       return false; // Prevent auto upload, we just want to select it
+    },
+  };
+  const folderUploadProps: any = {
+    name: 'files',
+    multiple: true,
+    directory: true,
+    showUploadList: false,
+    beforeUpload: (_file: any, fileList: any[]) => {
+      const files = fileList as File[];
+      if (files.length > 0) {
+        setUploadedFile(files[0]);
+        setUploadedFiles(files);
+        setFilePreview(null);
+        message.success(`${files.length} files attached successfully`);
+      }
+      return false;
     },
   };
 
@@ -2605,10 +2645,16 @@ const Playground: NextPage = () => {
                         {uploadedFile && (
                           <Tag
                             closable
-                            onClose={() => setUploadedFile(null)}
+                            onClose={() => {
+                              setUploadedFile(null);
+                              setUploadedFiles([]);
+                            }}
                             className='flex items-center gap-1 bg-green-50 border-green-200 text-green-700 px-3 py-1 rounded-full'
                           >
-                            <FileExcelOutlined /> <span className='font-medium ml-1'>{uploadedFile.name}</span>
+                            <FileExcelOutlined />{' '}
+                            <span className='font-medium ml-1'>
+                              {uploadedFiles.length > 1 ? `${uploadedFiles.length} files` : uploadedFile.name}
+                            </span>
                           </Tag>
                         )}
                       </div>
@@ -2657,10 +2703,19 @@ const Playground: NextPage = () => {
                                       key: 'upload',
                                       label: (
                                         <Upload {...uploadProps}>
-                                          <div className='w-full'>Upload File</div>
+                                          <div className='w-full'>Upload File / Zip</div>
                                         </Upload>
                                       ),
                                       icon: <UploadOutlined />,
+                                    },
+                                    {
+                                      key: 'upload-folder',
+                                      label: (
+                                        <Upload {...folderUploadProps}>
+                                          <div className='w-full'>Upload Folder</div>
+                                        </Upload>
+                                      ),
+                                      icon: <FolderOpenOutlined />,
                                     },
                                     {
                                       key: 'database',
@@ -3193,10 +3248,16 @@ const Playground: NextPage = () => {
                           {uploadedFile && (
                             <Tag
                               closable
-                              onClose={() => setUploadedFile(null)}
+                              onClose={() => {
+                                setUploadedFile(null);
+                                setUploadedFiles([]);
+                              }}
                               className='flex items-center gap-1 bg-green-50 border-green-200 text-green-700 px-3 py-1 rounded-full'
                             >
-                              <FileExcelOutlined /> <span className='font-medium ml-1'>{uploadedFile.name}</span>
+                              <FileExcelOutlined />{' '}
+                              <span className='font-medium ml-1'>
+                                {uploadedFiles.length > 1 ? `${uploadedFiles.length} files` : uploadedFile.name}
+                              </span>
                             </Tag>
                           )}
                           {selectedDb && (
@@ -3270,10 +3331,19 @@ const Playground: NextPage = () => {
                                   key: 'upload',
                                   label: (
                                     <Upload {...uploadProps}>
-                                      <div className='w-full'>{t('add_from_local')}</div>
+                                      <div className='w-full'>{t('add_from_local')} / Zip</div>
                                     </Upload>
                                   ),
                                   icon: <PaperClipOutlined />,
+                                },
+                                {
+                                  key: 'upload-folder',
+                                  label: (
+                                    <Upload {...folderUploadProps}>
+                                      <div className='w-full'>Upload Folder</div>
+                                    </Upload>
+                                  ),
+                                  icon: <FolderOpenOutlined />,
                                 },
                                 {
                                   key: 'skill',
